@@ -1,0 +1,52 @@
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from fairlearn.metrics import MetricFrame, demographic_parity_difference
+from fairlearn.datasets import fetch_adult
+
+# Load dataset
+data = fetch_adult(as_frame=True)
+df = data.frame
+
+# Features and target
+X = df.drop("class", axis=1)
+y = df["class"]
+
+# Convert categorical columns to numbers
+X = pd.get_dummies(X)
+
+# Sensitive feature
+sensitive_features = df[['age']].copy()
+
+sensitive_features['age_group'] = sensitive_features['age'].apply(
+    lambda x: 'old' if x >= 40 else 'young'
+)
+
+# Train model
+model = DecisionTreeClassifier(random_state=42)
+model.fit(X, y)
+
+# Prediction
+y_pred = model.predict(X)
+
+# Accuracy
+print("Accuracy:", accuracy_score(y, y_pred))
+
+# Fairness metrics
+mf = MetricFrame(
+    metrics={"accuracy": accuracy_score},
+    y_true=y,
+    y_pred=y_pred,
+    sensitive_features=sensitive_features['age_group']
+)
+
+print("\nMetrics by group:")
+print(mf.by_group)
+
+print(
+    "\nDemographic parity difference:",
+    demographic_parity_difference(
+        y, y_pred,
+        sensitive_features=sensitive_features['age_group']
+    )
+)
