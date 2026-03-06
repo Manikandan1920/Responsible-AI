@@ -1,0 +1,32 @@
+import pandas as pd
+from aif360.datasets import StandardDataset
+from aif360.metrics import BinaryLabelDatasetMetric
+
+# Load dataset
+df = pd.read_csv('adult.csv')
+
+dataset = StandardDataset(
+    df=df,
+    label_name='income',
+    favorable_classes=['>50K', '>50k'],
+    protected_attribute_names=['sex'],
+    privileged_classes=[['Male']],
+    metadata={
+        'label_maps': [{1.0: '>50K', 0.0: '<=50K'}],
+        'protected_attribute_maps': [{1.0: 'Male', 0.0: 'Female'}]
+    }
+)
+
+# Define the privileged and unprivileged groups
+privileged_groups = [{'sex': 1}]      # Male
+unprivileged_groups = [{'sex': 0}]    # Female
+
+# Calculate the bias metrics
+metric = BinaryLabelDatasetMetric(
+    dataset,
+    unprivileged_groups=unprivileged_groups,
+    privileged_groups=privileged_groups
+)
+
+print("Statistical Parity Difference:", metric.statistical_parity_difference())
+print("Disparate Impact:", metric.disparate_impact())
